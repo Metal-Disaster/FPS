@@ -1,49 +1,75 @@
--- FPS Optimizer (Balanceado, no destruye calidad visual)
 local Lighting = game:GetService("Lighting")
 local Terrain = workspace:FindFirstChildOfClass("Terrain")
-local Players = game:GetService("Players")
 
--- Reducir efectos de iluminación
-pcall(function()
-    Lighting.GlobalShadows = false
-    Lighting.FogEnd = 1e5
-    Lighting.Brightness = 1
-    Lighting.EnvironmentDiffuseScale = 0
-    Lighting.EnvironmentSpecularScale = 0
-end)
+local originalSettings = {}
+local originalSettingsSaved = false -- ⛔ Solo se guarda una vez
 
--- Desactivar efectos visuales (Blur, SunRays, etc.)
-for _, v in ipairs(Lighting:GetDescendants()) do
-    if v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("ColorCorrectionEffect") then
-        v.Enabled = false
-    end
-end
+Tab:CreateToggle({
+	Name = "Optimizar FPS (con restauración)",
+	CurrentValue = false,
+	Flag = "FPS_Toggle",
+	Callback = function(state)
+		if state then
+			-- Solo guardar la configuración original si no ha sido guardada antes
+			if not originalSettingsSaved then
+				pcall(function()
+					originalSettings = {
+						GlobalShadows = Lighting.GlobalShadows,
+						FogEnd = Lighting.FogEnd,
+						Brightness = Lighting.Brightness,
+						Diffuse = Lighting.EnvironmentDiffuseScale,
+						Specular = Lighting.EnvironmentSpecularScale,
+					}
 
--- Ajustes del agua (menos carga)
-pcall(function()
-    if Terrain then
-        Terrain.WaterWaveSize = 0
-        Terrain.WaterWaveSpeed = 0
-        Terrain.WaterReflectance = 0
-        Terrain.WaterTransparency = 1
-    end
-end)
+					if Terrain then
+						originalSettings.Terrain = {
+							WaveSize = Terrain.WaterWaveSize,
+							WaveSpeed = Terrain.WaterWaveSpeed,
+							Reflectance = Terrain.WaterReflectance,
+							Transparency = Terrain.WaterTransparency
+						}
+					end
 
--- Desactivar partículas, beams y trails
-for _, obj in ipairs(workspace:GetDescendants()) do
-    if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
-        obj.Enabled = false
-    end
-end
+					originalSettingsSaved = true -- ✅ Solo se guarda una vez
+				end)
+			end
 
--- Desactivar sombras de personajes
-for _, player in ipairs(Players:GetPlayers()) do
-    if player.Character then
-        for _, part in ipairs(player.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CastShadow = false
-            end
-        end
+			-- Ejecutar el optimizador desde URL externa
+			loadstring(game:HttpGet("https://pastebin.com/raw/TU_LINK_AQUI"))()
+
+			Rayfield:Notify({
+				Title = "FPS Boost Activado",
+				Content = "Rendimiento mejorado.",
+				Duration = 3
+			})
+		else
+			-- Restaurar ajustes originales
+			pcall(function()
+				if originalSettings then
+					Lighting.GlobalShadows = originalSettings.GlobalShadows or true
+					Lighting.FogEnd = originalSettings.FogEnd or 100000
+					Lighting.Brightness = originalSettings.Brightness or 1
+					Lighting.EnvironmentDiffuseScale = originalSettings.Diffuse or 1
+					Lighting.EnvironmentSpecularScale = originalSettings.Specular or 1
+
+					if Terrain and originalSettings.Terrain then
+						Terrain.WaterWaveSize = originalSettings.Terrain.WaveSize or 0.1
+						Terrain.WaterWaveSpeed = originalSettings.Terrain.WaveSpeed or 0.1
+						Terrain.WaterReflectance = originalSettings.Terrain.Reflectance or 0.05
+						Terrain.WaterTransparency = originalSettings.Terrain.Transparency or 0
+					end
+				end
+			end)
+
+			Rayfield:Notify({
+				Title = "FPS Boost Desactivado",
+				Content = "Ajustes restaurados a su estado original.",
+				Duration = 3
+			})
+		end
+	end,
+})
+
     end
 end
 
